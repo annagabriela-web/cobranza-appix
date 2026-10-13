@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<style>body{margin:0}img{max-width:100%}</style>
+<title>Cobranza y cierre Appix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: swimlane process map on top (scrolls sideways on phones), click a step to open a detail drawer; summary lists below */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#1b2230; --muted:#5e6778; --line:#d9dee7;
+  --accent:#2c4a7e; --accent-soft:#e8eef8;
+  --lane-cli:#2f7a52; --lane-cli-soft:#eef7f1;
+  --lane-apx:#2c4a7e; --lane-apx-soft:#f2f5fb;
+  --lane-con:#6a4a96; --lane-con-soft:#f5f1fa;
+  --pend:#8d96a6; --pend-soft:#fafbfc;
+  --risk:#b83a2c; --risk-soft:#fcefed;
+  --warn:#9a6a00; --warn-soft:#fff7e3;
+  --shadow:0 12px 40px rgba(20,30,50,.18);
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --surface:#1a2029; --fg:#e6e9ef; --muted:#9aa3b3; --line:#2c3441;
+  --accent:#8fb0e8; --accent-soft:#1f2b3f;
+  --lane-cli:#5fbf8a; --lane-cli-soft:#16221c;
+  --lane-apx:#8fb0e8; --lane-apx-soft:#171e2a;
+  --lane-con:#b69ae0; --lane-con-soft:#1d1826;
+  --pend:#7c8597; --pend-soft:#1a2029;
+  --risk:#f08a7c; --risk-soft:#2c1a18;
+  --warn:#e6b84d; --warn-soft:#2a2414;
+  --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --surface:#1a2029; --fg:#e6e9ef; --muted:#9aa3b3; --line:#2c3441;
+  --accent:#8fb0e8; --accent-soft:#1f2b3f;
+  --lane-cli:#5fbf8a; --lane-cli-soft:#16221c;
+  --lane-apx:#8fb0e8; --lane-apx-soft:#171e2a;
+  --lane-con:#b69ae0; --lane-con-soft:#1d1826;
+  --pend:#7c8597; --pend-soft:#1a2029;
+  --risk:#f08a7c; --risk-soft:#2c1a18;
+  --warn:#e6b84d; --warn-soft:#2a2414;
+  --shadow:0 12px 40px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1880px;margin:0 auto;padding-inline:24px;padding-block:28px 48px;display:grid;gap:24px}
+@media (max-width:600px){.wrap{padding-inline:16px}}
+header{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:flex-end;justify-content:space-between}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:clamp(26px,3.4vw,38px);line-height:1.1;margin:6px 0 4px;text-wrap:balance}
+.sub{color:var(--muted);margin:0;max-width:62ch}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:24px;height:14px;border-radius:4px;border:2px solid var(--accent);background:var(--accent-soft)}
+.sw.p{border-style:dashed;border-color:var(--pend);background:var(--pend-soft)}
+.dot{width:18px;height:18px;border-radius:50%;background:var(--risk);color:var(--surface);font:700 11px/18px var(--f-body);text-align:center}
+
+.mapbox{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow-x:auto}
+.hint{font-size:13px;color:var(--muted);padding:12px 18px 0}
+.map{position:relative;width:1780px;height:640px;margin:8px 0 14px}
+.lane{position:absolute;left:0;width:1780px;height:210px;border-top:1px solid var(--line)}
+.lane:last-of-type{border-bottom:1px solid var(--line)}
+.lane .lbl{position:absolute;left:0;top:0;width:76px;height:100%;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;transform:rotate(180deg);font:600 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--surface)}
+.l-cli{top:0;background:var(--lane-cli-soft)} .l-cli .lbl{background:var(--lane-cli)}
+.l-apx{top:210px;background:var(--accent-soft)} .l-apx .lbl{background:var(--lane-apx)}
+.l-con{top:420px;background:var(--lane-con-soft)} .l-con .lbl{background:var(--lane-con)}
+svg.wires{position:absolute;inset:0;pointer-events:none}
+.wire{fill:none;stroke:var(--accent);stroke-width:2}
+.wire.p{stroke:var(--pend);stroke-dasharray:6 5}
+.wlab{font:700 12px var(--f-body);fill:var(--muted)}
+
+.node{position:absolute;width:180px;min-height:84px;border:2px solid var(--accent);background:var(--surface);border-radius:10px;padding:8px 12px;text-align:center;cursor:pointer;color:var(--fg);font-family:var(--f-body);display:flex;flex-direction:column;justify-content:center;gap:2px;transition:transform .15s, box-shadow .15s}
+.node b{font-size:15px;line-height:1.2}
+.node small{font-size:12.5px;color:var(--muted);line-height:1.25}
+.node:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.node:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.node.p{border-style:dashed;border-color:var(--pend);background:var(--pend-soft)}
+.node.r{border-style:dashed;border-color:var(--risk);background:var(--risk-soft)}
+.node.start{border-radius:42px;border-color:var(--lane-cli)}
+.node.sel{box-shadow:0 0 0 4px var(--accent-soft),var(--shadow)}
+.node .badge{position:absolute;top:-11px;right:-11px;width:24px;height:24px;border-radius:50%;background:var(--risk);color:var(--surface);font:700 12px/24px var(--f-body);box-shadow:0 0 0 3px var(--surface)}
+.node.dia{width:112px;height:112px;border:none;background:none;padding:0}
+.node.dia::before{content:"";position:absolute;inset:17px;transform:rotate(45deg);border:2px solid var(--warn);background:var(--warn-soft);border-radius:6px}
+.node.dia b{position:relative;font-size:13px;padding:0 18px}
+.node.dia:hover{box-shadow:none}
+
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0}
+.card h2{font-family:var(--f-display);font-size:19px;margin:0 0 10px}
+.card ol,.card ul{margin:0;padding-left:20px;display:grid;gap:8px}
+.card button.link{all:unset;cursor:pointer;color:var(--fg);border-bottom:1px dashed var(--muted)}
+.card button.link:hover,.card button.link:focus-visible{color:var(--accent);border-color:var(--accent)}
+.t{font:500 11px var(--f-mono);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.t.h{color:var(--lane-cli);background:var(--lane-cli-soft)}
+.t.s{color:var(--risk);background:var(--risk-soft)}
+.c-risk{border-top:3px solid var(--risk)} .c-warn{border-top:3px solid var(--warn)} .c-pend{border-top:3px solid var(--pend)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,15,25,.35);z-index:10}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);border-left:1px solid var(--line);box-shadow:var(--shadow);z-index:11;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (max-width:640px){.drawer{top:auto;left:0;width:100%;max-height:82%;border-left:none;border-top:1px solid var(--line);border-radius:16px 16px 0 0}}
+.dhead{padding:20px 22px 14px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.dhead > div{flex:1;min-width:0}
+.dhead h3{font-family:var(--f-display);font-size:22px;line-height:1.15;margin:6px 0 0;text-wrap:balance}
+.close{all:unset;cursor:pointer;width:34px;height:34px;border-radius:8px;display:grid;place-items:center;font-size:20px;color:var(--muted);border:1px solid var(--line)}
+.close:focus-visible{outline:3px solid var(--accent)}
+.dbody{padding:16px 22px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;flex:1}
+.dbody>*{flex-shrink:0}
+.pill{display:inline-block;font:600 12px var(--f-body);padding:2px 10px;border-radius:20px}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.p{background:var(--pend-soft);color:var(--muted);border:1px dashed var(--pend)}
+.pill.r{background:var(--risk-soft);color:var(--risk)}
+.sec h4{margin:0 0 6px;font:600 12px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sec p{margin:0}
+.sec ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;padding:3px 10px;border-radius:20px;border:1px solid var(--line);background:var(--bg)}
+.chip.s{border-style:dashed;color:var(--muted)}
+.box-risk{background:var(--risk-soft);border-radius:10px;padding:12px 14px;color:var(--fg)}
+.box-risk h4{color:var(--risk)}
+.box-warn{background:var(--warn-soft);border-radius:10px;padding:12px 14px}
+.box-warn h4{color:var(--warn)}
+.dnav{display:flex;justify-content:space-between;gap:8px;padding:12px 22px;border-top:1px solid var(--line)}
+.dnav button{all:unset;cursor:pointer;font-weight:600;font-size:14px;color:var(--accent);padding:6px 10px;border-radius:8px}
+.dnav button:hover,.dnav button:focus-visible{background:var(--accent-soft)}
+.dnav button[disabled]{opacity:.35;pointer-events:none}
+
+.acts{display:grid;gap:8px}
+.act{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--accent);color:var(--accent);font-weight:600;font-size:15px;background:var(--accent-soft)}
+.act:hover,.act:focus-visible{outline:2px solid var(--accent)}
+.back{all:unset;cursor:pointer;font-size:14px;font-weight:600;color:var(--accent)}
+.kv{display:grid;grid-template-columns:auto 1fr;user-select:text;-webkit-user-select:text;gap:6px 12px;align-items:center;font-size:14.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-family:var(--f-mono);font-size:13.5px;min-width:0;overflow-wrap:anywhere}
+.kv dd.ph{color:var(--risk)}
+.copy{all:unset;cursor:pointer;font-size:12px;font-weight:600;color:var(--accent);padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.copy:focus-visible{outline:2px solid var(--accent)}
+.pane{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px}
+.pane h5{margin:0;font-family:var(--f-display);font-size:17px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.inv{border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13.5px}
+.inv-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--accent-soft)}
+.inv-h b{font-family:var(--f-display);font-size:16px}
+.inv-s{padding:10px 14px;border-top:1px solid var(--line);display:grid;gap:4px}
+.inv-s .lbl{font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.inv table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.inv td,.inv th{padding:6px 14px;text-align:left;border-top:1px solid var(--line);vertical-align:top}
+.inv th{font:600 11px var(--f-mono);text-transform:uppercase;color:var(--muted)}
+.inv td.n{text-align:right;white-space:nowrap}
+.inv tr.tot td{font-weight:700}
+.ph{color:var(--risk)}
+.steps{margin:0;padding-left:22px;display:grid;gap:8px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{all:unset;cursor:pointer;padding:5px 12px;border-radius:20px;border:1px solid var(--line);font-size:13.5px;font-weight:600}
+.tabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.tabs button:focus-visible{outline:2px solid var(--accent)}
+.node .go{font:600 10.5px var(--f-mono);color:var(--accent);letter-spacing:.04em;text-transform:uppercase}
+.node.static{cursor:default}
+.node.static:hover{transform:none;box-shadow:none}
+.node.gate{border-color:var(--warn);background:var(--warn-soft);min-height:114px;gap:6px}
+.node.gate ul{list-style:none;margin:0;padding:0;text-align:left;font-size:12.5px;display:grid;gap:3px}
+.node.gate li::before{content:"☐ ";color:var(--warn);font-weight:700}
+.node.pay{width:200px;padding:10px 12px;cursor:default;border-color:var(--lane-cli);gap:8px}
+.node.pay:hover{transform:none;box-shadow:none}
+.node.pay .ptitle{all:unset;cursor:pointer;display:grid;gap:2px}
+.node.pay .ptitle:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:4px}
+.node.pay .ptitle:hover b{text-decoration:underline}
+.minis{display:flex;gap:6px;justify-content:center}
+.mini{all:unset;cursor:pointer;white-space:nowrap;font-size:12px;font-weight:600;padding:4px 9px;border-radius:6px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent)}
+.mini:hover,.mini:focus-visible{background:var(--accent);color:var(--surface)}
+.node.pay.p{border-color:var(--pend)}
+.lane .cap{position:absolute;left:92px;top:8px;font:600 11px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.minuta{width:100%;border-collapse:collapse;font-size:14px}
+.minuta th{font:600 11px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.minuta td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.minuta td:last-child{white-space:nowrap;text-align:right}
+.est{font:600 12px var(--f-body);padding:2px 9px;border-radius:20px}
+.est.ok{background:var(--lane-cli-soft);color:var(--lane-cli)}
+.est.no{background:var(--risk-soft);color:var(--risk)}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.meta dt{color:var(--muted)} .meta dd{margin:0}
+@media (prefers-reduced-motion:reduce){.node{transition:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Appix · Rentabilidad Diseño · Borrador v0.2</div>
+      <h1>Proceso de cobranza y cierre</h1>
+      <p class="sub">El proyecto avanza por sprints en la fila de Appix. Cada sprint cierra solo cuando el cliente aprueba los entregables y paga el siguiente sprint. Da clic en un paso para ver su detalle, las formas de pago y las facturas.</p>
+    </div>
+    <div class="legend">
+      <span><i class="sw"></i>Confirmado</span>
+      <span><i class="sw p"></i>Por confirmar</span>
+      <span><i class="dot">1</i>Dolor detectado</span>
+    </div>
+  </header>
+
+  <section class="mapbox" aria-label="Diagrama del proceso">
+    <div class="hint">Desliza a los lados en el celular · clic en un paso para abrir el detalle</div>
+    <div class="map" id="map">
+      <div class="lane l-cli"><div class="lbl">Cliente</div></div>
+      <div class="lane l-apx"><div class="lbl">Appix · proyecto</div><span class="cap">Flujo principal</span></div>
+      <div class="lane l-con"><div class="lbl">Cobro y factura</div></div>
+      <svg class="wires" width="1780" height="640" viewBox="0 0 1780 640" aria-hidden="true">
+        <defs>
+          <marker id="ma" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--accent)"/></marker>
+          <marker id="mp" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--pend)"/></marker>
+        </defs>
+        <path class="wire" d="M210 147 V271" marker-end="url(#ma)"/>
+        <path class="wire" d="M210 357 V525 H228" marker-end="url(#ma)"/>
+        <path class="wire" d="M410 466 V359" marker-end="url(#ma)"/>
+        <path class="wire" d="M540 315 H598" marker-end="url(#ma)"/>
+        <path class="wire" d="M780 315 H838" marker-end="url(#ma)"/>
+        <path class="wire" d="M690 273 V105 H838" marker-end="url(#ma)"/>
+        <path class="wire" d="M930 147 V256" marker-end="url(#ma)"/>
+        <path class="wire" d="M930 466 V374" marker-end="url(#ma)"/>
+        <path class="wire" d="M1020 315 H1078" marker-end="url(#ma)"/>
+        <path class="wire p" d="M1260 315 H1318" marker-end="url(#mp)"/>
+        <path class="wire p" d="M1500 315 H1558" marker-end="url(#mp)"/>
+        <path class="wire p" d="M1410 466 V359" marker-end="url(#mp)"/>
+        <text class="wlab" x="700" y="96">entrega</text>
+        <text class="wlab" x="938" y="440">requisito</text>
+        <text class="wlab" x="418" y="440">habilita</text>
+      </svg>
+    </div>
+  </section>
+
+  <section class="cols">
+    <div class="card c-risk"><h2>Dolores detectados</h2><ol id="list-dolores"></ol></div>
+    <div class="card c-warn"><h2>Por confirmar con el equipo</h2><ul id="list-conf"></ul></div>
+    <div class="card c-pend"><h2>Capas pendientes de dictar</h2><ul>
+      <li><b>Personas en cobranza y facturación:</b> Roberth, director comercial (seguimiento del pago, contacto con el cliente y alta de la factura), Paco (timbrado), Contadora (verificación en el SAT)</li>
+      <li><b>Tecnologías de construcción:</b> sin dictar</li>
+      <li><b>Trackeo de tiempo:</b> Clockify <span class="t s">SUPUESTO</span></li>
+      <li><b>Seguimiento del proyecto:</b> Jira <span class="t s">SUPUESTO</span></li>
+    </ul></div>
+  </section>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="d-title">
+  <div class="dhead">
+    <div><span id="d-pill" class="pill"></span><h3 id="d-title"></h3></div>
+    <button class="close" id="d-close" aria-label="Cerrar">×</button>
+  </div>
+  <div class="dbody" id="d-body"></div>
+  <div class="dnav"><button id="d-prev">← Paso anterior</button><button id="d-next">Paso siguiente →</button></div>
+</aside>
+
+<script>
+// === DATOS DE APPIX: reemplazar los [ ] con los datos reales ===
+const APPIX = {
+  razonSocial:"APPIX SERVICIOS DIGITALES SA DE CV", rfc:"[RFC de Appix]", regimen:"[Régimen fiscal]", cp:"[C.P. fiscal]",
+  banco:"BBVA", titular:"APPIX SERVICIOS DIGITALES SA DE CV", cuenta:"0117555598", clabe:"012680001175555981",
+  referencia:"Nombre del proyecto + número de pago", proveedorLink:"[Proveedor del link de pago]", correoPagos:"[Correo donde se envía el comprobante]"
+};
+// Ejemplo para ilustrar montos (no es un proyecto real)
+const EJ = { proyecto:"Proyecto de ejemplo", cliente:"[Cliente de ejemplo]", subtotal:100000, iva:0.16,
+  pagos:[{n:1,pct:35,concepto:"Anticipo · Sprint 1"},{n:2,pct:25,concepto:"Pago 2 · Sprint 2"},{n:3,pct:20,concepto:"Pago 3 · Sprint 3"},{n:4,pct:20,concepto:"Pago 4 · Sprint 4"}] };
+const N = [
+ {id:"acepta", lane:"Cliente", x:120, y:63, cls:"start", st:"ok", title:"Acepta la propuesta", sub:"Inicio del proceso",
+  que:"El cliente acepta la propuesta comercial. Es el disparador del proyecto y del cobro del anticipo.",
+  quien:["Cliente (decisor que aprueba)"], plat:[], cuando:"Al cerrar la venta.",
+  conf:["¿Cómo se formaliza la aceptación: contrato firmado, correo u orden de compra?","¿La propuesta ya incluye el número de sprints y el calendario de pagos?"]},
+ {id:"aprueba1", lane:"Cliente", x:840, y:63, st:"ok", title:"Aprueba entregables del Sprint 1", sub:"Revisa lo que entregó Appix",
+  que:"El cliente revisa los entregables del Sprint 1 en la reunión de avance. En proyectos de diseño casi siempre los aprueba en la misma reunión.",
+  quien:["Cliente"], plat:[], cuando:"Al final del Sprint 1.",
+  conf:["¿Cómo queda registrada la aprobación (correo, acta, comentario en la herramienta)?","¿El cliente tiene un plazo máximo para aprobar?"]},
+ {id:"propuesta", lane:"Appix", x:120, y:273, cls:"start", st:"ok", title:"Propuesta aceptada", sub:"Se solicita el anticipo",
+  que:"Con la propuesta aceptada, Appix solicita el pago del anticipo del 35%.",
+  quien:["Appix (rol por confirmar)"], plat:[], cuando:"Justo después de la aceptación.",
+  conf:["¿Quién envía al cliente los datos de pago?"]},
+ {id:"kickoff", lane:"Appix", x:360, y:273, cls:"static", st:"ok", title:"Kickoff", sub:"Arranca el proyecto", nodrawer:true},
+ {id:"sprint1", lane:"Appix", x:600, y:273, st:"p", title:"Sprint 1 · ejecución", sub:"≈ 2 semanas (por confirmar)",
+  que:"El equipo construye los entregables del primer sprint y se los presenta al cliente para su aprobación.",
+  quien:["Diseño","Sistemas"], plat:[], platS:["Clockify (tiempo)","Jira (seguimiento)"], cuando:"Del kickoff al cierre del sprint: unas 2 semanas (por confirmar si son 2 o 3).",
+  conf:["¿Cuánto dura un sprint: 2 o 3 semanas?","¿Qué tecnologías de construcción se usan (Figma, stack de desarrollo)?"]},
+ {id:"fin1", lane:"Appix", x:840, y:258, cls:"gate", st:"ok", badge:"1", title:"Fin del Sprint 1", checks:["Minuta aprobada","Pago 2 recibido"],
+  acts:[["Minuta de cierre del Sprint 1","minuta"]], que:"Se presenta al cliente lo construido en el Sprint 1 y se levanta una minuta: qué se aprobó, qué no, qué cambios simples pidió y qué solicitudes de cambio pasan al Sprint 2 como rezago. El sprint se da por terminado cuando la minuta está aprobada y el cliente pagó el Sprint 2.",
+  quien:["Appix (rol por confirmar)","Cliente"], plat:[], cuando:"Al final de cada sprint (el mismo control se repite en los sprints 2 y 3).",
+  dolor:"Sin protocolo de impago: si el cliente no paga el Sprint 2 a tiempo, no hay recordatorio, pausa del equipo ni escalamiento definido. La aprobación no suele ser el problema: en diseño el cliente casi siempre aprueba en la misma reunión de avance.", dolorTag:"SUPUESTO",
+  conf:["¿Qué pasa si falta una de las dos condiciones: se pausa el equipo?","¿Quién verifica que se cumplieron las dos?"]},
+ {id:"sprint2", lane:"Appix", x:1080, y:273, st:"ok", title:"Sprint 2 · ejecución", sub:"Arranca con el pago 2",
+  que:"Mismo ciclo que el Sprint 1: ejecución, entrega, aprobación del cliente y pago del siguiente sprint.",
+  quien:["Diseño","Sistemas"], plat:[], platS:["Clockify (tiempo)","Jira (seguimiento)"], cuando:"Después del Fin del Sprint 1.",
+  conf:["¿Duración igual a la del Sprint 1?"]},
+ {id:"ciclo", lane:"Appix", x:1320, y:273, cls:"p", st:"p", title:"Sprints 3 y 4", sub:"Se repite el ciclo",
+  que:"Los sprints siguientes repiten el ciclo: ejecución, aprobación del cliente y pago del siguiente sprint.",
+  quien:["Diseño","Sistemas","Cliente"], plat:[], cuando:"Hasta completar el proyecto.",
+  conf:["¿Cuántos sprints tiene un proyecto típico? Supuse 4 (uno por cada pago)."]},
+ {id:"cierre", lane:"Appix", x:1560, y:273, cls:"p", st:"p", badge:"2", title:"Cierre del proyecto", sub:"¿Último sprint aprobado y pagado?",
+  que:"Momento en que el proyecto se considera cerrado. Hoy no hay un criterio definido.",
+  quien:["Por definir"], plat:[], cuando:"Después del último sprint.",
+  dolor:"No hay criterio de proyecto cerrado (aceptación final del cliente y último pago cobrado).", dolorTag:"SUPUESTO",
+  conf:["¿Qué tiene que pasar para dar el proyecto por cerrado?","¿Hay acta de entrega o aceptación final?"]},
+ {id:"pago1", lane:"Cobro y factura", x:230, y:466, cls:"pay", st:"ok", title:"Pago 1 · anticipo 35%", sub:"Primero el pago, luego la factura",
+  minis:[["Formas de pago","pago"],["Factura 1","factura:1"]],
+  que:"El cliente paga el anticipo del 35%. Con este paso se habilita el kickoff y el Sprint 1.",
+  quien:["Cliente","Appix (rol por confirmar)"], plat:["Transferencia bancaria","Link de pago (tarjeta de crédito)","Zoho Books"], cuando:"Después de aceptar la propuesta y antes del kickoff.",
+  conf:["¿Qué proveedor genera el link de pago?","¿El 35% reemplazó al esquema 30/70 o conviven?"]},
+ {id:"pago2", lane:"Cobro y factura", x:830, y:466, cls:"pay", st:"ok", title:"Pago 2 · Sprint 2", sub:"Requisito para cerrar el Sprint 1",
+  minis:[["Formas de pago","pago"],["Factura 2","factura:2"]],
+  que:"El cliente paga el Sprint 2. Es una de las dos condiciones para cerrar el Sprint 1.",
+  quien:["Cliente","Appix (rol por confirmar)"], plat:["Transferencia bancaria","Link de pago (tarjeta de crédito)","Zoho Books"], cuando:"Al final del Sprint 1.",
+  conf:["¿Qué % del total es este pago?"]},
+ {id:"pago34", lane:"Cobro y factura", x:1310, y:466, cls:"pay p", st:"p", title:"Pagos 3 y 4", sub:"Uno por cada sprint siguiente",
+  minis:[["Formas de pago","pago"],["Facturas 3 y 4","factura:3"]],
+  que:"Mismo ciclo: el pago de cada sprint es requisito para cerrar el sprint anterior.",
+  quien:["Cliente"], plat:["Transferencia bancaria","Link de pago (tarjeta de crédito)","Zoho Books"], cuando:"Al final de los sprints 2 y 3.",
+  conf:["¿Qué % es cada pago? (35 + ? + ? + ? = 100)"]},
+ {id:"facturacion", lane:"Cobro y factura", x:1560, y:466, cls:"pay", st:"ok", title:"Generación de factura", sub:"Roberth · Paco · Contadora",
+  minis:[["Ver flujo de factura","flujo"]],
+  que:"Roberth, director comercial y contacto con el cliente, da seguimiento a cada pago. Cuando entra, Roberth da de alta la factura en Zoho Books, Paco la timbra con un botón desde Zoho Books y la contadora revisa en el portal del SAT que la factura ya aparezca.",
+  plat:["Zoho Books","Portal del SAT"]}
+];
+const DOLORES = [
+ ["fin1","Sin protocolo de impago","no hay recordatorio, pausa del equipo ni escalamiento definido.","SUPUESTO"],
+ ["cierre","Cierre no definido","no hay criterio de proyecto cerrado.","SUPUESTO"]
+];
+const order = ["acepta","propuesta","pago1","sprint1","aprueba1","pago2","fin1","sprint2","ciclo","pago34","facturacion","cierre"];
+const byId = Object.fromEntries(N.map(n=>[n.id,n]));
+const map = document.getElementById("map");
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+N.forEach(n=>{
+  const isPay=n.cls&&n.cls.includes("pay");
+  const b=document.createElement((n.nodrawer||isPay)?"div":"button");
+  b.className="node "+(n.cls||"");
+  b.style.left=n.x+"px"; b.style.top=n.y+"px";
+  b.dataset.id=n.id;
+  const badge=n.badge?`<span class="badge" style="${String(n.badge).length>1?"width:34px;border-radius:12px":""}">${n.badge}</span>`:"";
+  if(isPay){
+    b.innerHTML=`<button class="ptitle"><b>${esc(n.title)}</b><small>${esc(n.sub)}</small></button><div class="minis">${n.minis.map(([l,v])=>`<button class="mini" data-view="${v}">${esc(l)}</button>`).join("")}</div>${badge}`;
+    b.querySelector(".ptitle").addEventListener("click",()=>openNode(n.id));
+    b.querySelectorAll(".mini").forEach(m=>m.addEventListener("click",()=>{openNode(n.id);openView(m.dataset.view)}));
+  } else {
+    b.innerHTML=`<b>${esc(n.title)}</b>${n.sub?`<small>${esc(n.sub)}</small>`:""}${n.checks?`<ul>${n.checks.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`:""}${badge}`;
+    if(!n.nodrawer) b.addEventListener("click",()=>openNode(n.id));
+  }
+  map.appendChild(b);
+});
+// summary lists
+const dl=document.getElementById("list-dolores");
+DOLORES.forEach(([id,t,d,tag])=>{
+  const li=document.createElement("li");
+  li.innerHTML=`<button class="link" data-id="${id}">${esc(t)}</button>: ${esc(d)} <span class="t ${tag==="HECHO"?"h":"s"}">${tag}</span>`;
+  dl.appendChild(li);
+});
+const cl=document.getElementById("list-conf");
+[["sprint1","¿Cuánto dura un sprint: 2 o 3 semanas?"],["ciclo","¿Cuántos sprints tiene un proyecto típico? (supuse 4, uno por pago)"],["pago34","¿Qué % es cada pago después del 35%?"],["fin1","¿Qué pasa si el cliente no aprueba o no paga a tiempo?"],["pago1","¿Qué proveedor genera el link de pago?"],["facturacion","¿Roberth envía la factura timbrada al cliente o sale en automático de Zoho Books?"]].forEach(([id,t])=>{
+  const li=document.createElement("li"); li.innerHTML=`<button class="link" data-id="${id}">${esc(t)}</button>`; cl.appendChild(li);
+});
+document.querySelectorAll(".card button.link").forEach(b=>b.addEventListener("click",()=>openNode(b.dataset.id)));
+
+// drawer
+const drawer=document.getElementById("drawer"), scrim=document.getElementById("scrim");
+let current=null, lastFocus=null;
+function chips(arr,s){return arr.map(p=>`<span class="chip ${s?"s":""}">${esc(p)}${s?" (supuesto)":""}</span>`).join("")}
+function openNode(id){
+  const n=byId[id]; if(!n) return;
+  if(!current) lastFocus=document.activeElement;
+  current=id;
+  document.querySelectorAll(".node").forEach(e=>e.classList.toggle("sel",e.dataset.id===id));
+  const pill=document.getElementById("d-pill");
+  pill.className="pill "+(n.badge?"r":n.st==="p"?"p":"ok");
+  pill.textContent=(n.badge?`Dolor ${n.badge} · `:"")+(n.st==="p"?"Por confirmar":"Confirmado")+" · "+n.lane;
+  document.getElementById("d-title").textContent=n.title;
+  const plat = (n.plat.length||n.platS) ? `<div class="chips">${chips(n.plat)}${n.platS?chips(n.platS,true):""}</div>` : `<p style="color:var(--muted)">Sin plataforma identificada todavía.</p>`;
+  document.getElementById("d-body").innerHTML=`
+    <div class="sec"><h4>Qué pasa</h4><p>${esc(n.que)}</p></div>
+    <div class="sec"><h4>Plataformas y tecnología</h4>${plat}</div>
+    ${(n.acts||n.minis)?`<div class="sec"><h4>Abrir</h4><div class="acts">${(n.acts||n.minis).map(([l,v])=>`<button class="act" data-view="${v}">${esc(l)}<span aria-hidden="true">→</span></button>`).join("")}</div></div>`:""}
+    ${n.dolor?`<div class="sec box-risk"><h4>Dolor ${n.badge}</h4><p>${esc(n.dolor)} <span class="t ${n.dolorTag==="HECHO"?"h":"s"}">${n.dolorTag}</span></p></div>`:""}
+`;
+  document.querySelectorAll("#d-body .act").forEach(b=>b.addEventListener("click",()=>openView(b.dataset.view)));
+  const i=order.indexOf(id);
+  document.getElementById("d-prev").disabled=i<=0;
+  document.getElementById("d-next").disabled=i>=order.length-1;
+  drawer.hidden=false; scrim.hidden=false;
+  document.getElementById("d-body").scrollTop=0;
+  document.getElementById("d-close").focus();
+  try{ history.replaceState(null,"","#"+id) }catch(e){}
+}
+
+const money=v=>v.toLocaleString("es-MX",{style:"currency",currency:"MXN"});
+const isPh=v=>/^\[.*\]$/.test(v);
+function kv(rows){return `<dl class="kv">${rows.map(([k,v])=>`<dt>${esc(k)}</dt><dd class="${isPh(v)?"ph":""}">${esc(v)}</dd>`).join("")}</dl>`}
+function viewPago(){
+  return `<div class="pane"><h5>Transferencia bancaria</h5>
+    ${kv([["Banco",APPIX.banco],["Titular",APPIX.titular],["Cuenta",APPIX.cuenta],["CLABE",APPIX.clabe],["Referencia",APPIX.referencia],["Enviar comprobante a",APPIX.correoPagos]])}
+    <p class="note">Los campos en rojo están pendientes: hay que llenarlos con los datos reales de Appix.</p></div>
+  <div class="pane"><h5>Link de pago con tarjeta de crédito</h5>
+    ${kv([["Proveedor",APPIX.proveedorLink],["Quién lo genera","[Rol en Appix]"],["Comisión","[% que cobra el proveedor]"]])}
+    <p class="note">Por confirmar: ¿la comisión del link la absorbe Appix o se le traslada al cliente?</p></div>
+`;
+}
+function viewFactura(k){
+  const p=EJ.pagos[k-1], base=EJ.subtotal*p.pct/100, iva=base*EJ.iva, tot=base+iva;
+  const tabs=EJ.pagos.map(x=>`<button data-view="factura:${x.n}" aria-pressed="${x.n===k}">Factura ${x.n}</button>`).join("");
+  return `<div class="tabs" role="group" aria-label="Facturas">${tabs}</div>
+  <div class="inv">
+    <div class="inv-h"><div><b>Factura ${k} · ${esc(p.concepto)}</b><br><span class="note">Vista de ejemplo · montos ilustrativos</span></div><div class="note">Folio: <span class="ph">[Serie-Folio]</span><br>Fecha: <span class="ph">[Fecha de emisión]</span></div></div>
+    <div class="inv-s"><span class="lbl">Emisor</span><span class="${isPh(APPIX.razonSocial)?"ph":""}">${esc(APPIX.razonSocial)}</span><span>RFC: <span class="ph">${esc(APPIX.rfc)}</span> · Régimen: <span class="ph">${esc(APPIX.regimen)}</span> · C.P. <span class="ph">${esc(APPIX.cp)}</span></span></div>
+    <div class="inv-s"><span class="lbl">Receptor</span><span class="ph">${esc(EJ.cliente)}</span><span>RFC, régimen, C.P. y uso del CFDI del cliente</span></div>
+    <table><thead><tr><th>Concepto</th><th class="n">Importe</th></tr></thead><tbody>
+      <tr><td>${esc(p.concepto)} (${p.pct}%) · ${esc(EJ.proyecto)}<br><span class="note">Valor total del proyecto de ejemplo: ${money(EJ.subtotal)} + IVA</span></td><td class="n">${money(base)}</td></tr>
+      <tr><td>IVA 16%</td><td class="n">${money(iva)}</td></tr>
+      <tr class="tot"><td>Total</td><td class="n">${money(tot)}</td></tr></tbody></table>
+    <div class="inv-s"><span class="lbl">Datos de pago</span><span>Forma de pago: 03 Transferencia electrónica o 04 Tarjeta de crédito</span><span>Método de pago: PUE (pago en una sola exhibición), porque la factura se emite cuando el pago ya se recibió <span class="t s">VALIDAR</span></span></div>
+  </div>
+  <p class="note">Los porcentajes de los pagos 2 a 4 (25 / 20 / 20) son de ejemplo hasta confirmar el esquema real.</p>
+  ${k===1?`<div class="sec box-warn"><h4>Ojo con la factura del anticipo</h4><p>En México el SAT tiene un procedimiento específico para facturar anticipos (factura del anticipo y luego factura por el total relacionada con ella). Hay que validar con la contadora cómo lo maneja Appix hoy. <span class="t s">VALIDAR</span></p></div>`:""}`;
+}
+function viewFlujo(){
+  return `<div class="sec box-warn" style="background:var(--accent-soft)"><h4 style="color:var(--accent)">Confirmado</h4><p>Primero el cliente paga y después se genera la factura. <span class="t h">HECHO</span></p></div>
+  <div class="pane"><h5>Flujo de la factura</h5><ol class="steps">
+    <li><b>Roberth (Comercial)</b> da seguimiento al pago con el cliente y confirma que entró (transferencia o link de pago).</li>
+    <li><b>Roberth</b> da de alta la factura en Zoho Books: cliente, concepto y monto.</li>
+    <li><b>Paco</b> la timbra con un botón desde Zoho Books.</li>
+    <li><b>La contadora</b> revisa en el portal del SAT que la factura ya aparezca.</li>
+  </ol><div class="chips"><span class="chip">Zoho Books</span><span class="chip">Portal del SAT</span></div></div>
+  <div class="sec box-warn"><h4>Por confirmar</h4><ul><li>¿Roberth también le envía la factura timbrada al cliente, o sale en automático desde Zoho Books? <span class="t s">SUPUESTO</span></li></ul></div>`;
+}
+function viewMinuta(){
+  const rows=[["Wireframes de la página de inicio",1],["Paleta de color y tipografía",1],["Flujo de registro de usuario",0],["Prototipo navegable de la sección de productos",1]];
+  return `<p class="note">Plantilla con un ejemplo. En cada proyecto se reemplaza con los elementos reales que se presentaron.</p>
+  <div class="pane"><h5>Datos de la sesión</h5><dl class="meta"><dt>Proyecto</dt><dd class="ph">[Nombre del proyecto]</dd><dt>Fecha</dt><dd class="ph">[Fecha de la revisión]</dd><dt>Asistentes</dt><dd class="ph">[Cliente · Appix]</dd></dl></div>
+  <div class="pane"><h5>Elementos presentados</h5>
+    <table class="minuta"><thead><tr><th>Elemento</th><th style="text-align:right">Resultado</th></tr></thead><tbody>
+    ${rows.map(([e,ok])=>`<tr><td>${esc(e)}</td><td><span class="est ${ok?"ok":"no"}">${ok?"Aprobado":"No aprobado"}</span></td></tr>`).join("")}
+    </tbody></table></div>
+  <div class="pane"><h5>Cambios simples solicitados</h5><p class="note">Ajustes menores que se resuelven al cerrar el sprint, sin mover el calendario.</p>
+    <ul class="steps"><li>Ajustar el color del botón principal.</li><li>Cambiar el texto del encabezado de inicio.</li></ul></div>
+  <div class="pane"><h5>Solicitudes de cambio · pasan al Sprint 2 como rezago</h5><p class="note">Lo no aprobado o lo que requiere rehacer trabajo. Entra al Sprint 2 junto con lo planeado.</p>
+    <ul class="steps"><li>Rediseñar el flujo de registro de usuario (no aprobado).</li><li>Agregar una sección de preguntas frecuentes.</li></ul></div>
+  <div class="sec box-warn"><h4>Separar rezago de alcance nuevo</h4><p>"Agregar preguntas frecuentes" no estaba en la propuesta: es alcance nuevo, no rezago. Si se mete al Sprint 2 sin cotizarlo, el proyecto se alarga sin cobrarse. Conviene marcar cada solicitud como <b>rezago</b> o <b>alcance nuevo (se cotiza aparte)</b>. <span class="t s">OPINIÓN</span></p></div>
+  <div class="pane"><h5>Resultado del cierre</h5><ul class="steps"><li>Sprint 1 cerrado con <b>1 elemento en rezago</b>.</li><li>Pago 2: <span class="ph">[Recibido / pendiente]</span></li><li>Firma o aprobación del cliente: <span class="ph">[Correo / firma / comentario]</span></li></ul></div>`;
+}
+function openView(v){
+  const n=byId[current];
+  const [kind,arg]=v.split(":");
+  const title = kind==="minuta"?"Minuta de cierre del Sprint 1":kind==="pago"?"Formas de pago":kind==="flujo"?"¿Dónde y quién hace la factura?":`Factura ${arg}`;
+  document.getElementById("d-title").textContent=title;
+  document.getElementById("d-pill").className="pill ok";
+  document.getElementById("d-pill").textContent=n.title;
+  const body = kind==="minuta"?viewMinuta():kind==="pago"?viewPago():kind==="flujo"?viewFlujo():viewFactura(+arg);
+  document.getElementById("d-body").innerHTML=`<button class="back" id="d-back">← Volver a “${esc(n.title)}”</button>`+body;
+  document.getElementById("d-back").addEventListener("click",()=>openNode(current));
+  document.querySelectorAll("#d-body .tabs button").forEach(b=>b.addEventListener("click",()=>openView(b.dataset.view)));
+  document.getElementById("d-body").scrollTop=0;
+}
+function closeDrawer(){
+  drawer.hidden=true; scrim.hidden=true; current=null;
+  document.querySelectorAll(".node").forEach(e=>e.classList.remove("sel"));
+  try{ history.replaceState(null,"",location.pathname+location.search) }catch(e){}
+  if(lastFocus) lastFocus.focus();
+}
+document.getElementById("d-close").addEventListener("click",closeDrawer);
+scrim.addEventListener("click",closeDrawer);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&current) closeDrawer(); });
+document.getElementById("d-prev").addEventListener("click",()=>openNode(order[order.indexOf(current)-1]));
+document.getElementById("d-next").addEventListener("click",()=>openNode(order[order.indexOf(current)+1]));
+const h=location.hash.slice(1); if(byId[h]) openNode(h);
+</script>
+
+</body>
+</html>
